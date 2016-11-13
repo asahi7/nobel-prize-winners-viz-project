@@ -25,7 +25,7 @@ var tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
 
-d3.json("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json", function(world){
+d3.json("world_map.json", function(world){
 
 var group = svg.selectAll("g")
               .data(world.features)
