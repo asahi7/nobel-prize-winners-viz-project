@@ -1,0 +1,21 @@
+.country{
+    stroke: white;
+    stroke-width: 1px;
+}
+
+.country:hover{
+    fill: red;
+}
+
+.tooltip{
+    width: 100px;
+    height: 70px;
+    text-align: center;
+    position: absolute;
+    background-color: #ADD8E6;
+    color: #000;
+    font: 14px sans-serif;
+    padding: 8px;
+    pointer-events: none;
+}
+

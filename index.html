@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+    <body>
+        <script>
+
+var width = 1200;
+var height = 800;
+
+var projection = d3.geo.mercator()
+                   .translate([width / 2, height / 2])
+                   .precision(.1)
+                   .scale((width + 1) / 2 / Math.PI);
+
+var path = d3.geo.path().projection(projection);
+
+var svg = d3.select("body").append("svg")
+            .attr({"width" : width, "height" : height})
+
+var tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+d3.json("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json", function(world){
+
+var group = svg.selectAll("g")
+              .data(world.features)
+              .enter()
+              .append("g");
+
+group.append("path")
+     .attr("d", path)
+     .attr("class", "country")
+     .attr("fill", "steelblue");
+
+group.on("mouseover", mouseover);
+
+});
+
+function mouseover(d){
+    tooltip.text(d.properties.name)
+           .style("opacity", .9)
+           .style("left", d3.event.pageX + "px")
+           .style("top", d3.event.pageY + "px");
+}
+
+        </script>
+    </body>
+</html>
