@@ -1,10 +1,12 @@
 .country{
     stroke: white;
-    stroke-width: 1px;
+    stroke-width: .5px;
 }
 
 .country:hover{
-    fill: red;
+    /*fill: red;*/
+    stroke: #8FBC8F;
+    stroke-width: 3px;
 }
 
 .tooltip{
@@ -19,3 +21,10 @@
     pointer-events: none;
 }
 
+.description{
+    position: absolute;
+    left: 10px;
+    bottom: 120px;
+    width: 100px;
+    height: 205px;
+}

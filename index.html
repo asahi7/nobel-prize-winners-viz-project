@@ -2,10 +2,13 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js"></script> 
+        <!-- <script src="d3.min.js"></script> -->
         <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
+        <div class="description">
+        </div>
         <script>
 
 var width = 1200;
@@ -25,9 +28,26 @@ var tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
 
+var cellSize = 27;
+
+var colorCalibration = ['#8B8B8B', '#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+var colors = ['#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+
+// var colors = ['#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+// var colorCalibration = ['#8B8B8B', '#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+
+var widthDescription = 100;
+var heightDescription = colorCalibration.length * (cellSize + 2);
+
+
+var colorScale = d3.scale.quantile()
+                   .range(colors);
+
+var group;
+
 d3.json("world_map.json", function(world){
 
-var group = svg.selectAll("g")
+group = svg.selectAll("g")
               .data(world.features)
               .enter()
               .append("g");
@@ -35,17 +55,88 @@ var group = svg.selectAll("g")
 group.append("path")
      .attr("d", path)
      .attr("class", "country")
-     .attr("fill", "steelblue");
+     .attr("fill", "#8B8B8B");
 
 group.on("mouseover", mouseover);
 
 });
+
+initializeDescription();
 
 function mouseover(d){
     tooltip.text(d.properties.name)
            .style("opacity", .9)
            .style("left", d3.event.pageX + "px")
            .style("top", d3.event.pageY + "px");
+}
+
+function initializeDescription(){
+    var desc = d3.select(".description").append("svg")
+                 .attr("width", widthDescription)
+                 .attr("height", heightDescription);
+    var legend = desc.selectAll(".legend").data(colorCalibration)
+                     .enter().append("g")
+                     .attr("class", "legend")
+                     .attr("width", widthDescription)
+                     .attr("height", cellSize)
+                     .attr("transform", function(d, i) { return "translate(0, " + (i * (cellSize + 2)) + ")"; });
+    
+    legend.append("rect")
+          .attr("width", cellSize)
+          .attr("height", cellSize)
+          .attr("fill", function(d) { return d; });
+
+    legend.append("text")
+          .attr("y", cellSize / 2)
+          .attr("x", cellSize + 4)
+          .attr("font", "sans-serif")
+          .text(function(d, i) { return i + 1; });
+}
+
+update_map();
+
+function update_map(){
+    d3.csv("winners.csv", beautify, function(winners){
+        var country_data = {};
+        winners.forEach(function(d){
+            if(country_data[d.country] == undefined) country_data[d.country] = 1;
+            else country_data[d.country]++;
+        });   
+        var data = Object.keys(country_data).map(function(key){
+            return {"country" : key, "cnt" : country_data[key]};
+        });
+        console.log(data);
+        
+        //colorScale.domain(d3.extent(data, function(d) { return d.cnt; }));
+        colorScale.domain(data.map(function(d) { return d.cnt; }));
+
+        console.log(data.map(function(d) { return colorScale(d.cnt); }));
+
+        group.select("path").attr("fill", function(d){
+            var cnt = find_country_cnt(d.properties.name, data);
+            if(cnt == 0) return colorCalibration[0];
+            else return colorScale(cnt);
+        });
+    });
+}
+
+function find_country_cnt(name, data){
+    var res = 0;
+    //console.log(name + ", " + data[1].country);
+    data.forEach(function(d){    
+        if(name == d.country){
+            res = d.cnt;
+        }
+    });
+    return +res;
+}
+
+function beautify(d){
+    d.year = +d.year;
+    d.name = d.name.trim();
+    d.field = d.field.trim();
+    d.country = d.country.trim();
+    return d;
 }
 
         </script>
