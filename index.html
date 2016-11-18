@@ -12,8 +12,15 @@
         </div>
         <script>
 
-var width = 1200;
-var height = 800;
+//var width = 1200;
+//var height = 800;
+
+var width = 900;
+var height = 550;
+var margin = {top: 20, right: 20, bottom: 30, left: 120};
+
+var firstYear = 1901;
+var lastYear = 2016;
 
 var projection = d3.geo.mercator()
                    .translate([width / 2, height / 2])
@@ -23,7 +30,8 @@ var projection = d3.geo.mercator()
 var path = d3.geo.path().projection(projection);
 
 var svg = d3.select("body").append("svg")
-            .attr({"width" : width, "height" : height})
+            .attr({"width" : width + margin.left + margin.right, "height" : height + margin.top + margin.bottom})
+            .append("g").attr("translate", "transform(" + margin.leff + ", " + margin.top + ")");
 
 var tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
@@ -47,6 +55,30 @@ var colorScale = d3.scale.threshold()
                    .domain([5, 10, 15, 20, 25, 50, 75, 100])
                    .range(colors);
 
+var navHeight = 50;
+
+var navChart = d3.select("body").append("svg")
+                  .attr({"width" : width + margin.left + margin.right, "height" : navHeight + margin.top + margin.bottom})
+                  .attr("class", "navigator")
+                  .append("g").attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+ 
+var parseToDate = d3.time.format("%Y").parse;
+
+var navXScale = d3.time.scale().domain([parseToDate(firstYear + ""), parseToDate(lastYear + "")])
+                  .range([0, width])
+                  //.ticks(d3.time.year, 20)
+                  .nice();
+
+var navXAxis = d3.svg.axis()
+                 .scale(navXScale)
+                 .ticks(30)
+                 .orient("bottom");
+
+navChart.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0, " + navHeight + ")")
+         .call(navXAxis);
+
 var group;
 
 d3.json("world_map.json", function(world){
@@ -62,6 +94,8 @@ group.append("path")
      .attr("fill", "#8B8B8B");
 
 group.on("mouseover", mouseover);
+
+read_data();
 
 });
 
@@ -124,10 +158,7 @@ function initializeDescription(){
 var winners;
 var data;
 
-read_data();
-//update_data();
-//update_map();
-
+//read_data();
 
 function read_data(){
     d3.csv("winners.csv", beautify, function(winners_data){
@@ -137,10 +168,10 @@ function read_data(){
     });    
 }
 
-function update_data(maxYear = 2016){
+function update_data(maxYear = 2016, minYear = 1901){
     var country_data = {};
     winners.forEach(function(d){
-         if(d.year <= maxYear){
+         if(d.year <= maxYear && d.year >= minYear){
              if(country_data[d.country] == undefined) country_data[d.country] = 1;
              else country_data[d.country]++;
         }
@@ -161,7 +192,6 @@ function update_map(){
 
 function find_country_cnt(name, data){
     var res = 0;
-    //console.log(name + ", " + data[1].country);
     data.forEach(function(d){    
         if(name == d.country){
             res = d.cnt;
