@@ -7,6 +7,7 @@
         <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
+        <button onclick="switchColors()">change colors!</button>
         <div class="description">
         </div>
         <script>
@@ -30,17 +31,20 @@ var tooltip = d3.select("body").append("div")
 
 var cellSize = 27;
 
-var colorCalibration = ['#8B8B8B', '#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
-var colors = ['#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+var colorCalibration_1 = ['#8B8B8B', '#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+var colors_1 = ['#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
 
-// var colors = ['#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
-// var colorCalibration = ['#8B8B8B', '#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+var colorCalibration_2 = ['#8B8B8B', '#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+var colors_2 = ['#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+
+var colors = colors_1;
+var colorCalibration = colorCalibration_1;
 
 var widthDescription = 100;
 var heightDescription = colorCalibration.length * (cellSize + 2);
 
-
-var colorScale = d3.scale.quantile()
+var colorScale = d3.scale.threshold()
+                   .domain([5, 10, 15, 20, 25, 50, 75, 100])
                    .range(colors);
 
 var group;
@@ -62,6 +66,26 @@ group.on("mouseover", mouseover);
 });
 
 initializeDescription();
+
+function switchColors(){
+    if(colors == colors_1){
+        colors = colors_2;
+        colorCalibration = colorCalibration_2;
+    }
+    else{
+        colors = colors_1;
+        colorCalibration = colorCalibration_1;
+    }
+    var legend = d3.select(".description").select("svg")
+        .selectAll(".legend").data(colorCalibration);
+      
+    legend.select("rect").attr("fill", function(d) {return d;});
+    
+    colorScale.range(colors);
+
+    update_map();
+
+}
 
 function mouseover(d){
     tooltip.text(d.properties.name)
@@ -87,36 +111,51 @@ function initializeDescription(){
           .attr("fill", function(d) { return d; });
 
     legend.append("text")
-          .attr("y", cellSize / 2)
+          .attr("y", cellSize / 2 + 5)
           .attr("x", cellSize + 4)
           .attr("font", "sans-serif")
-          .text(function(d, i) { return i + 1; });
+          .text(function(d, i){
+                if(i == 0){ return "No data"; }
+                else if(i == colorScale.domain().length + 1) return " > " + colorScale.domain()[i - 2];
+                return " < " + colorScale.domain()[i - 1];
+          });
 }
 
-update_map();
+var winners;
+var data;
+
+read_data();
+//update_data();
+//update_map();
+
+
+function read_data(){
+    d3.csv("winners.csv", beautify, function(winners_data){
+        winners = winners_data;
+        update_data();
+        update_map();
+    });    
+}
+
+function update_data(maxYear = 2016){
+    var country_data = {};
+    winners.forEach(function(d){
+         if(d.year <= maxYear){
+             if(country_data[d.country] == undefined) country_data[d.country] = 1;
+             else country_data[d.country]++;
+        }
+    });   
+    data = Object.keys(country_data).map(function(key){
+       return {"country" : key, "cnt" : country_data[key]};
+    });
+    console.log(data);
+}
 
 function update_map(){
-    d3.csv("winners.csv", beautify, function(winners){
-        var country_data = {};
-        winners.forEach(function(d){
-            if(country_data[d.country] == undefined) country_data[d.country] = 1;
-            else country_data[d.country]++;
-        });   
-        var data = Object.keys(country_data).map(function(key){
-            return {"country" : key, "cnt" : country_data[key]};
-        });
-        console.log(data);
-        
-        //colorScale.domain(d3.extent(data, function(d) { return d.cnt; }));
-        colorScale.domain(data.map(function(d) { return d.cnt; }));
-
-        console.log(data.map(function(d) { return colorScale(d.cnt); }));
-
-        group.select("path").attr("fill", function(d){
-            var cnt = find_country_cnt(d.properties.name, data);
-            if(cnt == 0) return colorCalibration[0];
-            else return colorScale(cnt);
-        });
+    group.select("path").attr("fill", function(d){
+       var cnt = find_country_cnt(d.properties.name, data);
+       if(cnt == 0) return colorCalibration[0];
+       else return colorScale(cnt);
     });
 }
 
