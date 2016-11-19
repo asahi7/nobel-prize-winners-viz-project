@@ -40,3 +40,9 @@
   stroke: #000;
   shape-rendering: crispEdges;
 }
+
+.navigator .viewport {
+    stroke: grey;
+    fill: black;
+    fill-opacity: 0.2;
+}

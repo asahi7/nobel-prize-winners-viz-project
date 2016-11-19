@@ -63,10 +63,10 @@ var navChart = d3.select("body").append("svg")
                   .append("g").attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
  
 var parseToDate = d3.time.format("%Y").parse;
+var parseFromDate = d3.time.format("%Y");
 
 var navXScale = d3.time.scale().domain([parseToDate(firstYear + ""), parseToDate(lastYear + "")])
                   .range([0, width])
-                  //.ticks(d3.time.year, 20)
                   .nice();
 
 var navXAxis = d3.svg.axis()
@@ -80,6 +80,25 @@ navChart.append("g")
          .call(navXAxis);
 
 var group;
+
+var viewport = d3.svg.brush()
+                 .x(navXScale)
+                 .extent([parseToDate(firstYear + ""),parseToDate(lastYear + "")])
+                 .on("brush", function(){
+                    var ext = viewport.extent();
+                    var maxYear = +parseFromDate(ext[1]);
+                    var minYear = +parseFromDate(ext[0]);
+                    update_data(maxYear, minYear);
+                    update_map();
+                  });
+
+navChart.append("g")
+        .attr("class", "viewport")
+        .call(viewport)
+        .selectAll("rect")
+        .attr("height", navHeight)
+        .attr("y", -6)
+        .style("visibility", "visible");
 
 d3.json("world_map.json", function(world){
 
@@ -179,7 +198,7 @@ function update_data(maxYear = 2016, minYear = 1901){
     data = Object.keys(country_data).map(function(key){
        return {"country" : key, "cnt" : country_data[key]};
     });
-    console.log(data);
+    //console.log(data);
 }
 
 function update_map(){
