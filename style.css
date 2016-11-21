@@ -7,6 +7,12 @@
     /*fill: red;*/
     stroke: #8FBC8F;
     stroke-width: 3px;
+    cursor: pointer;
+}
+
+.country.active{
+    stroke: #8FBC8F;
+    stroke-width: 3px;
 }
 
 .tooltip{

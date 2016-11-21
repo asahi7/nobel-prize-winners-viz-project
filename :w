@@ -20,8 +20,7 @@ Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 1; }, "keydown");
 Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 0; }, "keyup");
 
 function deleteSelectedCountries(){
-     group.selectAll(".country.active").classed("active", false);
-     selected_countries = [];
+    selected_countries = [];
 }
 
 //var width = 1200;
@@ -146,23 +145,22 @@ function click(d){
     if(COM_PRESSED == 1){
         var pos = selected_countries.indexOf(d.properties.name); 
         if(pos != -1){
+            // delete country
+            // remove selection activeness
             selected_countries.splice(pos, 1);
-            group.selectAll(".country.active").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", false);
+            group.select(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", false);
+            
             return;
         } 
         selected_countries.push(d.properties.name);
 
-        group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
+        group.select(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
             
-        //console.log("Current selected countries are:");
-        //console.log(selected_countries);
+        console.log("Current selected countries are:");
+        console.log(selected_countries);
     }
     else{
-        //console.log("Selected one country : " + d.properties.name);
-        group.selectAll(".country.active").classed("active", false);
-        selected_countries = [];
-        selected_countries.push(d.properties.name);
-        group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
+        console.log("Selected one country : " + d.properties.name);
     }
 }
 
