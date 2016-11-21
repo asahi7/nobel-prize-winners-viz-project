@@ -37,6 +37,9 @@ var tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
                 .style("opacity", 0);
 
+tooltip.append("h3");
+tooltip.append("div").attr("class", "info");
+
 var cellSize = 27;
 
 var colorCalibration_1 = ['#8B8B8B', '#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
@@ -80,6 +83,9 @@ navChart.append("g")
          .call(navXAxis);
 
 var group;
+var currentMaxYear = lastYear;
+var currentMinYear = firstYear;
+
 
 var viewport = d3.svg.brush()
                  .x(navXScale)
@@ -89,6 +95,8 @@ var viewport = d3.svg.brush()
                     var maxYear = +parseFromDate(ext[1]);
                     var minYear = +parseFromDate(ext[0]);
                     update_data(maxYear, minYear);
+                    if(maxYear) currentMaxYear = maxYear;
+                    if(minYear) currentMinYear = minYear;
                     update_map();
                   });
 
@@ -113,6 +121,7 @@ group.append("path")
      .attr("fill", "#8B8B8B");
 
 group.on("mouseover", mouseover);
+group.on("mouseout", mouseout);
 
 read_data();
 
@@ -141,10 +150,36 @@ function switchColors(){
 }
 
 function mouseover(d){
-    tooltip.text(d.properties.name)
-           .style("opacity", .9)
-           .style("left", d3.event.pageX + "px")
-           .style("top", d3.event.pageY + "px");
+    tooltip.style("opacity", 1)
+           .style("left", d3.mouse(this)[0] + "px")
+           .style("top", d3.mouse(this)[1] + "px");
+    tooltip.select("h3").text(d.properties.name);
+    /*
+        Total: 10
+        Chemistry:
+        Economics:
+        Literature:
+        Peace:
+        Physics:
+        Physiology or Medicine: 
+    */
+    var text = "Total : " + find_country_cnt(d.properties.name, data) + ", " + "Chemistry : " + find_country_cnt_by_subject(d.properties.name, winners, "Chemistry") + ", " + "Economics : " + find_country_cnt_by_subject(d.properties.name, winners, "Economics") + ", " + "Literature : " + find_country_cnt_by_subject(d.properties.name, winners, "Literature") + ", " + "Peace : " + find_country_cnt_by_subject(d.properties.name, winners, "Peace") + ", " + "Physics : " + find_country_cnt_by_subject(d.properties.name, winners, "Physics") + ", " + "Physiology or Medicine : " + find_country_cnt_by_subject(d.properties.name, winners, "Physiology or Medicine");
+    tooltip.select(".info").text(text);
+}
+
+/* Add year */
+function find_country_cnt_by_subject(name, data, subject_name){
+    var res = 0;
+    data.forEach(function(d){    
+        if(name == d.country && subject_name == d.field && d.year >= currentMinYear && d.year <= currentMaxYear){
+            res++;
+        }
+    });
+    return +res;
+}
+
+function mouseout(d){
+   // tooltip.style("opacity", 0);
 }
 
 function initializeDescription(){
@@ -176,8 +211,7 @@ function initializeDescription(){
 
 var winners;
 var data;
-
-//read_data();
+var filtred_data;
 
 function read_data(){
     d3.csv("winners.csv", beautify, function(winners_data){
