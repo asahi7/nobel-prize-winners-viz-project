@@ -4,13 +4,16 @@
         <meta charset="utf-8">
         <script src="http://d3js.org/d3.v3.min.js"></script> 
         <script src="mousetrap.min.js"></script>
-        <!-- <script src="d3.min.js"></script> -->
         <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
-        <button onclick="switchColors()">change colors!</button>
-        <button onclick="deleteSelectedCountries()">unselect selected countries</button>
+         <div class="buttons">
+            <button onclick="switchColors()">Change color</button>
+            <button onclick="deleteSelectedCountries()">Unselect</button>
+        </div>
         <div class="description">
+        </div>
+        <div class="frame">
         </div>
 <script>
 
@@ -18,14 +21,6 @@ var COM_PRESSED = 0;
 
 Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 1; }, "keydown");
 Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 0; }, "keyup");
-
-function deleteSelectedCountries(){
-     group.selectAll(".country.active").classed("active", false);
-     selected_countries = [];
-}
-
-//var width = 1200;
-//var height = 800;
 
 var width = 900;
 var height = 550;
@@ -43,7 +38,10 @@ var path = d3.geo.path().projection(projection);
 
 var svg = d3.select("body").append("svg")
             .attr({"width" : width + margin.left + margin.right, "height" : height + margin.top + margin.bottom})
-            .append("g").attr("translate", "transform(" + margin.leff + ", " + margin.top + ")");
+            .append("g").attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
+var frameWidth = 200;
+var frameHeight = 600;
 
 var tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
@@ -109,6 +107,7 @@ var viewport = d3.svg.brush()
                     if(maxYear) currentMaxYear = maxYear;
                     if(minYear) currentMinYear = minYear;
                     update_map();
+                    update_pie_chart();
                   });
 
 navChart.append("g")
@@ -135,12 +134,82 @@ group.on("mouseover", mouseover);
 group.on("mouseout", mouseout);
 group.on("click", click);
 
-
 read_data();
 
 });
 
+var fields = ["Chemistry", "Literature", "Peace", "Physics", "Physiology or Medicine", "Economics"];
+
+/*Pie chart vars*/
+var pieChart = d3.select(".frame").append("svg").attr({"width" : frameWidth, "height" : 200})
+                 .append("g").attr("transform", "translate(100, 100)");
+
+var colorPie = d3.scale.ordinal()
+                 .range(['#d53e4f','#fc8d59','#fee08b','#e6f598','#99d594','#3288bd']);
+var radius = 100;
+var arc = d3.svg.arc()
+            .outerRadius(radius)
+            .innerRadius(0);
+var pie = d3.layout.pie().sort(null).value(function(d) { return d.cnt; });
+
+var labelArc = d3.svg.arc()
+                 .outerRadius(radius - 20)
+                 .innerRadius(radius - 20);
+var labelArc2 = d3.svg.arc()
+                 .outerRadius(radius - 60)
+                 .innerRadius(radius - 60);
+
+
+function update_pie_chart(){
+    pieChart.selectAll(".arc").remove();
+    var pieData = fields.map(function(field) {
+        var cnt = 0;
+        winners.forEach(function(d){
+            if(d.field == field && d.year >= currentMinYear && d.year <= currentMaxYear){
+                if(selected_countries.length != 0){
+                    var found = false;
+                    selected_countries.forEach(function(country){
+                        if(country == d.country){
+                            cnt++;
+                            return;
+                        }
+                    });
+                }
+                else{
+                    cnt++;
+                }
+            }
+        });
+        return {"cnt" : cnt, "field" : field};
+    });
+    //console.log(pieData);
+    var g = pieChart.selectAll(".arc")
+               .data(pie(pieData))
+               .enter().append("g")
+               .attr("class", "arc");
+
+    g.append("path")
+     .attr("d", arc)
+     .style("fill", function(d) { return colorPie(d.data.field); });
+
+    g.append("text")
+     .attr("transform", function(d) { return "translate(" + labelArc.centroid(d) + ")"; })
+     .attr("dy", ".18em")
+     .text(function(d) { return (d.data.cnt == 0 ? "" : d.data.field); });
+    
+    g.append("text")
+     .attr("transform", function(d) { return "translate(" + labelArc2.centroid(d) + ")"; })
+     .attr("dy", ".18em")
+     .text(function(d) { return (d.data.cnt == 0 ? "": d.data.cnt); });
+}
+
 var selected_countries = [];
+
+function deleteSelectedCountries(){
+     group.selectAll(".country.active").classed("active", false);
+     selected_countries = [];
+     update_pie_chart();
+}
 
 function click(d){
     if(COM_PRESSED == 1){
@@ -148,22 +217,19 @@ function click(d){
         if(pos != -1){
             selected_countries.splice(pos, 1);
             group.selectAll(".country.active").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", false);
+            update_pie_chart();
             return;
         } 
         selected_countries.push(d.properties.name);
-
         group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
-            
-        //console.log("Current selected countries are:");
-        //console.log(selected_countries);
     }
     else{
-        //console.log("Selected one country : " + d.properties.name);
         group.selectAll(".country.active").classed("active", false);
         selected_countries = [];
         selected_countries.push(d.properties.name);
         group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
     }
+    update_pie_chart();
 }
 
 initializeDescription();
@@ -194,20 +260,11 @@ function mouseover(d){
            .style("left", d3.mouse(this)[0] + "px")
            .style("top", d3.mouse(this)[1] + "px");
     tooltip.select("h3").text(d.properties.name);
-    /*
-        Total: 10
-        Chemistry:
-        Economics:
-        Literature:
-        Peace:
-        Physics:
-        Physiology or Medicine: 
-    */
+
     var text = "Total : " + find_country_cnt(d.properties.name, data) + ", " + "Chemistry : " + find_country_cnt_by_subject(d.properties.name, winners, "Chemistry") + ", " + "Economics : " + find_country_cnt_by_subject(d.properties.name, winners, "Economics") + ", " + "Literature : " + find_country_cnt_by_subject(d.properties.name, winners, "Literature") + ", " + "Peace : " + find_country_cnt_by_subject(d.properties.name, winners, "Peace") + ", " + "Physics : " + find_country_cnt_by_subject(d.properties.name, winners, "Physics") + ", " + "Physiology or Medicine : " + find_country_cnt_by_subject(d.properties.name, winners, "Physiology or Medicine");
     tooltip.select(".info").text(text);
 }
 
-/* Add year */
 function find_country_cnt_by_subject(name, data, subject_name){
     var res = 0;
     data.forEach(function(d){    
@@ -258,6 +315,7 @@ function read_data(){
         winners = winners_data;
         update_data();
         update_map();
+        update_pie_chart();
     });    
 }
 

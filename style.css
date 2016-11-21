@@ -103,3 +103,28 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#feffe8', end
     fill: black;
     fill-opacity: 0.2;
 }
+
+.buttons{
+    position: absolute;
+    width: 100px;
+    bottom: 40px;
+    left: 0px;
+    float: left;
+}
+
+.frame{
+    position: absolute;
+    width: 200px;
+    height: 600px;
+    right: 20px;
+    top: 20px;
+}
+
+.arc path {
+  stroke: #fff;
+}
+
+.arc text {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
