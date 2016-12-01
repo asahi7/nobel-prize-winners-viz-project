@@ -1,3 +1,7 @@
+body{
+    background-color: #73CBFF;
+}
+
 .country{
     stroke: black;
     stroke-width: .5px;
@@ -104,11 +108,35 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#feffe8', end
     fill-opacity: 0.2;
 }
 
+.checkboxes{
+    position: absolute;
+    width: 200px;
+    top: 400px;
+    left: 10px;
+    border: 1px solid black;
+    background-color: white;
+    float: left;
+
+
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Chrome/Safari/Opera */
+    -khtml-user-select: none; /* Konqueror */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
+                                  not supported by any browser */
+
+}
+.checkboxes label{
+    width: 100%;
+    display: inline-block;
+}
+
 .buttons{
     position: absolute;
     width: 100px;
     bottom: 40px;
-    left: 0px;
+    left: 10px;
     float: left;
 }
 

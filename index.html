@@ -7,7 +7,30 @@
         <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
-         <div class="buttons">
+        <div class="checkboxes">
+            <label>
+                <input type="checkbox" value="Economics" checked> Economics
+            </label>
+            <label>
+                <input type="checkbox" value="Chemistry" checked> Chemistry
+            </label>
+            <label>
+                <input type="checkbox" value="Literature" checked> Literature
+            </label>
+            <label>
+                <input type="checkbox" value="Peace" checked> Peace
+            </label>
+            <label>
+                <input type="checkbox" value="Physics" checked> Physics
+            </label>
+            <label>
+                <input type="checkbox" value="Physiology or Medicine" checked> Physiology or Medicine
+            </label>
+            <label>
+                <input type="checkbox" id="total_checkbox" value="Total" onchange="update_checkbox()" value="total" checked> Total
+            </label>
+        </div>
+        <div class="buttons">
             <button onclick="switchColors()">Change color</button>
             <button onclick="deleteSelectedCountries()">Unselect</button>
         </div>
@@ -15,6 +38,20 @@
         </div>
         <div class="frame">
         </div>
+<script>
+
+function update_checkbox(){
+    var cond = document.getElementById("total_checkbox").checked; 
+    var tags = document.getElementsByTagName('input');
+    for(var i = 0; i < tags.length; i++){
+       if(tags[i].type == "checkbox"){
+             tags[i].checked = cond;
+       }
+    }
+}
+
+</script>
+
 <script>
 
 var COM_PRESSED = 0;
@@ -232,6 +269,28 @@ function click(d){
     update_pie_chart();
 }
 
+
+var checkbox_tags = {};
+var checkbox = d3.select(".checkboxes").selectAll("label")
+                 .on("mousedown", function(){setTimeout(update_checkbox_tags, 300)});
+
+function update_checkbox_tags(){
+      var tags = document.getElementsByTagName("input");
+      var cnt = 0;
+      for(var i = 0; i < tags.length; i++){
+         if(tags[i].type == "checkbox"){
+              checkbox_tags[tags[i].value] = tags[i].checked;              
+              if(tags[i].checked == true) cnt++;
+         } 
+     }
+     if(cnt < 7){
+        var tot = document.getElementById("total_checkbox");
+        tot.checked = false;
+        checkbox_tags["Total"] = false;
+     }
+     if(data) update_map();
+}
+
 initializeDescription();
 
 function switchColors(){
@@ -261,7 +320,7 @@ function mouseover(d){
            .style("top", d3.mouse(this)[1] + "px");
     tooltip.select("h3").text(d.properties.name);
 
-    var text = "Total : " + find_country_cnt(d.properties.name, data) + ", " + "Chemistry : " + find_country_cnt_by_subject(d.properties.name, winners, "Chemistry") + ", " + "Economics : " + find_country_cnt_by_subject(d.properties.name, winners, "Economics") + ", " + "Literature : " + find_country_cnt_by_subject(d.properties.name, winners, "Literature") + ", " + "Peace : " + find_country_cnt_by_subject(d.properties.name, winners, "Peace") + ", " + "Physics : " + find_country_cnt_by_subject(d.properties.name, winners, "Physics") + ", " + "Physiology or Medicine : " + find_country_cnt_by_subject(d.properties.name, winners, "Physiology or Medicine");
+    var text = "Total : " + find_country_cnt(d.properties.name, data, true) + ", " + "Chemistry : " + find_country_cnt_by_subject(d.properties.name, winners, "Chemistry") + ", " + "Economics : " + find_country_cnt_by_subject(d.properties.name, winners, "Economics") + ", " + "Literature : " + find_country_cnt_by_subject(d.properties.name, winners, "Literature") + ", " + "Peace : " + find_country_cnt_by_subject(d.properties.name, winners, "Peace") + ", " + "Physics : " + find_country_cnt_by_subject(d.properties.name, winners, "Physics") + ", " + "Physiology or Medicine : " + find_country_cnt_by_subject(d.properties.name, winners, "Physiology or Medicine");
     tooltip.select(".info").text(text);
 }
 
@@ -316,6 +375,7 @@ function read_data(){
         update_data();
         update_map();
         update_pie_chart();
+        update_checkbox_tags();
     });    
 }
 
@@ -323,14 +383,39 @@ function update_data(maxYear = 2016, minYear = 1901){
     var country_data = {};
     winners.forEach(function(d){
          if(d.year <= maxYear && d.year >= minYear){
-             if(country_data[d.country] == undefined) country_data[d.country] = 1;
-             else country_data[d.country]++;
+             if(country_data[d.country] == undefined){
+                country_data[d.country] = {};
+                country_data[d.country]["Total"] = 1;
+                country_data[d.country]["Physiology or Medicine"] = 0;
+                country_data[d.country]["Peace"] = 0;
+                country_data[d.country]["Chemistry"] = 0;
+                country_data[d.country]["Physics"] = 0;
+                country_data[d.country]["Literature"] = 0;
+                country_data[d.country]["Economics"] = 0;
+
+                country_data[d.country][d.field]++;
+             }
+             else{
+                country_data[d.country]["Total"]++;
+                country_data[d.country][d.field]++;
+             }
         }
-    });   
+    });  
+    //console.log(country_data);
     data = Object.keys(country_data).map(function(key){
-       return {"country" : key, "cnt" : country_data[key]};
+       //return {"country" : key, "cnt" : country_data[key]};
+        return {
+            "country" : key,
+            "Total" : country_data[key]["Total"],
+            "Physiology or Medicine" : country_data[key]["Physiology or Medicine"],
+            "Peace" : country_data[key]["Peace"],
+            "Chemistry" : country_data[key]["Chemistry"],
+            "Physics" : country_data[key]["Physics"],
+            "Literature" : country_data[key]["Literature"],
+            "Economics" : country_data[key]["Economics"]
+        }
     });
-    //console.log(data);
+    console.log(data);
 }
 
 function update_map(){
@@ -341,11 +426,16 @@ function update_map(){
     });
 }
 
-function find_country_cnt(name, data){
+function find_country_cnt(name, data, total = false){
     var res = 0;
     data.forEach(function(d){    
         if(name == d.country){
-            res = d.cnt;
+            if(total == true) {res = d.Total; return;}
+            for(var key in checkbox_tags){
+               if(key == "Total" || key == "country") continue;
+               if(checkbox_tags[key] == true) res += d[key];
+            }
+            return;
         }
     });
     return +res;
