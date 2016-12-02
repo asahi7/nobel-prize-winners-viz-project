@@ -135,7 +135,7 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#feffe8', end
 .buttons{
     position: absolute;
     width: 100px;
-    bottom: 40px;
+    bottom: 20px;
     left: 10px;
     float: left;
 }

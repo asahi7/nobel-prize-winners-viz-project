@@ -31,7 +31,8 @@
             </label>
         </div>
         <div class="buttons">
-            <button onclick="switchColors()">Change color</button>
+            <a onclick="generateGraph(); return false;" target="_blank" href="chart.html"><button>Generate Graph</button></a>
+            <button onclick="switchColors()">Change Color</button>
             <button onclick="deleteSelectedCountries()">Unselect</button>
         </div>
         <div class="description">
@@ -39,6 +40,98 @@
         <div class="frame">
         </div>
 <script>
+
+var prevColor = 0;
+
+// only 12 countries maximum, for more countries open new window
+function generateGraph(){
+    var graph_colors_a = ['#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f'];
+    var graph_colors_b = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928'];
+    var graph_colors = [];
+
+    if(! prevColor) graph_colors = graph_colors_a;
+    else graph_colors = graph_colors_b;
+    prevColor = prevColor ^ 1;
+    
+    console.log(selected_countries);
+    console.log(checkbox_tags);
+
+    if(selected_countries.length == 0){
+        alert("Cannot generate graph with no countries selected");
+        return;
+    }
+    if(selected_countries.length > 12){
+        alert("Cannot generate graph with more than 12 countries selected");
+        return;
+    }
+
+    var graph_data = {};
+   
+    graph_data["minYear"] = 1900;
+    graph_data["maxYear"] = 2020;
+    graph_data["datasets"] = [];
+
+    for(var i = 0; i < selected_countries.length; i++){
+        country_data = {
+            label: selected_countries[i],
+            fill: false,
+            lineTension: 0.1,
+            backgroundColor: graph_colors[i],
+            //borderColor: "rgba(75,192,192,1)",
+            borderColor: graph_colors[i],
+            borderCapStyle: 'butt',
+            borderDash: [],
+            borderDashOffset: 0.0,
+            borderJoinStyle: 'miter',
+            //pointBorderColor: "rgba(75,192,192,1)",
+            pointBorderColor: graph_colors[i],
+            pointBackgroundColor: "#fff",
+            pointBorderWidth: 1,
+            pointHoverRadius: 5,
+            // pointHoverBackgroundColor: "rgba(75,192,192,1)",
+            //pointHoverBorderColor: "rgba(220,220,220,1)",
+            pointHoverBackgroundColor: graph_colors[i],
+            pointHoverBorderColor: graph_colors[i],
+            pointHoverBorderWidth: 2,
+            pointRadius: 1,
+            pointHitRadius: 10,
+            spanGaps: false,
+        };
+        country_data["data"] = [];
+        for(var year = 1900; year <= 2020; year += 5){
+            var entry = {};
+            entry["x"] = year;
+            var cnt = 0;
+            for(var j = 0; j < winners.length; j++){
+                if(winners[j].country == selected_countries[i] && checkbox_tags[winners[j].field] == true && winners[j].year <= year) cnt++;
+            }
+            entry["y"] = cnt;
+            country_data["data"].push(entry);
+        }
+        graph_data["datasets"].push(country_data);
+    }    
+    console.log(graph_data); 
+    localStorage.setItem("graph_data", JSON.stringify(graph_data));
+    popupCenter("chart.html", "", 920, 520);
+}
+
+function popupCenter(url, title, w, h) {
+    // Fixes dual-screen position                         Most browsers      Firefox
+    var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+    var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+
+    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+    var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+    var top = ((height / 2) - (h / 2)) + dualScreenTop;
+    var newWindow = window.open(url, '', 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+
+    // Puts focus on the newWindow
+    if (window.focus) {
+        newWindow.focus();
+    }
+}
 
 function update_checkbox(){
     var cond = document.getElementById("total_checkbox").checked; 
@@ -49,10 +142,6 @@ function update_checkbox(){
        }
     }
 }
-
-</script>
-
-<script>
 
 var COM_PRESSED = 0;
 
@@ -282,6 +371,11 @@ function update_checkbox_tags(){
               checkbox_tags[tags[i].value] = tags[i].checked;              
               if(tags[i].checked == true) cnt++;
          } 
+     }
+     if(cnt == 6 && document.getElementById("total_checkbox").checked == false){
+        cnt++;
+        document.getElementById("total_checkbox").checked = true;
+        checkbox_tags["Total"] = true;
      }
      if(cnt < 7){
         var tot = document.getElementById("total_checkbox");

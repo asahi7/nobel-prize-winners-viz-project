@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <script src="chart.js/dist/Chart.min.js"></script>
+    </head>
+    <body>
+        <canvas id="myChart" width="900" height="500"></canvas>
+<script>
+    console.log(localStorage);
+    var graph_data = JSON.parse(localStorage.getItem("graph_data"));
+    if(! graph_data){
+        alert("No data given!");
+    }
+    // perform all the operations before clearing storage
+    console.log(graph_data);
+    localStorage.clear();
+</script>
+        
+<script>
+
+var data = {
+    datasets : graph_data["datasets"]
+};
+
+    var ctx = document.getElementById("myChart");
+    var myChart = new Chart(ctx, {
+        type : 'line',
+        data : data,
+        options : {
+            responsive : false,
+            scales : {
+                xAxes: [{
+                    type: "linear",
+                    position : "bottom",
+                    ticks: {
+                        min : 1900,
+                        max : 2020,
+                        fixedStepSize : 5,
+                    }  
+                }]
+            }
+        }
+    });
+</script>
+    </body>
+</html>
