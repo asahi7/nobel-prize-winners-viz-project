@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <script src="http://d3js.org/d3.v3.min.js"></script> 
+        <script src="mousetrap.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+    <body>
+        <div class="checkboxes">
+            <label>
+                <input type="checkbox" value="Economics" checked> Economics
+            </label>
+            <label>
+                <input type="checkbox" value="Chemistry" checked> Chemistry
+            </label>
+            <label>
+                <input type="checkbox" value="Literature" checked> Literature
+            </label>
+            <label>
+                <input type="checkbox" value="Peace" checked> Peace
+            </label>
+            <label>
+                <input type="checkbox" value="Physics" checked> Physics
+            </label>
+            <label>
+                <input type="checkbox" value="Physiology or Medicine" checked> Physiology or Medicine
+            </label>
+            <label>
+                <input type="checkbox" id="total_checkbox" value="Total" onchange="update_checkbox()" value="total" checked> Total
+            </label>
+        </div>
+        <div class="buttons">
+            <a onclick="generateGraph(); return false;" target="_blank" href="chart.html"><button>Generate Graph</button></a>
+            <button onclick="switchColors()">Change Color</button>
+            <button onclick="deleteSelectedCountries()">Unselect</button>
+        </div>
+        <div class="description">
+        </div>
+        <div class="frame">
+        </div>
+<script>
+
+var prevColor = 0;
+
+// only 12 countries maximum, for more countries open new window
+function generateGraph(){
+    var graph_colors_a = ['#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f'];
+    var graph_colors_b = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928'];
+    var graph_colors = [];
+
+    if(! prevColor) graph_colors = graph_colors_a;
+    else graph_colors = graph_colors_b;
+    prevColor = prevColor ^ 1;
+    
+    console.log(selected_countries);
+    console.log(checkbox_tags);
+
+    if(selected_countries.length == 0){
+        alert("Cannot generate graph with no countries selected");
+        return;
+    }
+    if(selected_countries.length > 12){
+        alert("Cannot generate graph with more than 12 countries selected");
+        return;
+    }
+
+    var graph_data = {};
+   
+    graph_data["minYear"] = 1900;
+    graph_data["maxYear"] = 2020;
+    graph_data["datasets"] = [];
+
+    for(var i = 0; i < selected_countries.length; i++){
+        country_data = {
+            label: selected_countries[i],
+            fill: false,
+            lineTension: 0.1,
+            backgroundColor: graph_colors[i],
+            //borderColor: "rgba(75,192,192,1)",
+            borderColor: graph_colors[i],
+            borderCapStyle: 'butt',
+            borderDash: [],
+            borderDashOffset: 0.0,
+            borderJoinStyle: 'miter',
+            //pointBorderColor: "rgba(75,192,192,1)",
+            pointBorderColor: graph_colors[i],
+            pointBackgroundColor: "#fff",
+            pointBorderWidth: 1,
+            pointHoverRadius: 5,
+            // pointHoverBackgroundColor: "rgba(75,192,192,1)",
+            //pointHoverBorderColor: "rgba(220,220,220,1)",
+            pointHoverBackgroundColor: graph_colors[i],
+            pointHoverBorderColor: graph_colors[i],
+            pointHoverBorderWidth: 2,
+            pointRadius: 1,
+            pointHitRadius: 10,
+            spanGaps: false,
+        };
+        country_data["data"] = [];
+        for(var year = 1900; year <= 2020; year += 5){
+            var entry = {};
+            entry["x"] = year;
+            var cnt = 0;
+            for(var j = 0; j < winners.length; j++){
+                if(winners[j].country == selected_countries[i] && checkbox_tags[winners[j].field] == true && winners[j].year <= year) cnt++;
+            }
+            entry["y"] = cnt;
+            country_data["data"].push(entry);
+        }
+        graph_data["datasets"].push(country_data);
+    }    
+    console.log(graph_data); 
+    localStorage.setItem("graph_data", JSON.stringify(graph_data));
+    popupCenter("chart.html", "", 920, 520);
+}
+
+function popupCenter(url, title, w, h) {
+    // Fixes dual-screen position                         Most browsers      Firefox
+    var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+    var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+
+    var width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+    var height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+
+    var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+    var top = ((height / 2) - (h / 2)) + dualScreenTop;
+    var newWindow = window.open(url, '', 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+
+    // Puts focus on the newWindow
+    if (window.focus) {
+        newWindow.focus();
+    }
+}
+
+function update_checkbox(){
+    var cond = document.getElementById("total_checkbox").checked; 
+    var tags = document.getElementsByTagName('input');
+    for(var i = 0; i < tags.length; i++){
+       if(tags[i].type == "checkbox"){
+             tags[i].checked = cond;
+       }
+    }
+}
+
+var COM_PRESSED = 0;
+
+Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 1; }, "keydown");
+Mousetrap.bind(["ctrl", "command"], function() { COM_PRESSED = 0; }, "keyup");
+
+var width = 900;
+var height = 550;
+var margin = {top: 20, right: 20, bottom: 30, left: 120};
+
+var firstYear = 1901;
+var lastYear = 2016;
+
+var projection = d3.geo.mercator()
+                   .translate([width / 2, height / 2])
+                   .precision(.1)
+                   .scale((width + 1) / 2 / Math.PI);
+
+var path = d3.geo.path().projection(projection);
+
+var svg = d3.select("body").append("svg")
+            .attr({"width" : width + margin.left + margin.right, "height" : height + margin.top + margin.bottom})
+            .append("g").attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+
+var frameWidth = 200;
+var frameHeight = 600;
+
+var tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+tooltip.append("h3");
+tooltip.append("div").attr("class", "info");
+
+var cellSize = 27;
+
+var colorCalibration_1 = ['#8B8B8B', '#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+var colors_1 = ['#ffffcc','#ffeda0','#fed976','#feb24c','#fd8d3c','#fc4e2a','#e31a1c','#bd0026','#800026'];
+
+var colorCalibration_2 = ['#8B8B8B', '#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+var colors_2 = ['#f7f4f9','#e7e1ef','#d4b9da','#c994c7','#df65b0','#e7298a','#ce1256','#980043','#67001f'];
+
+var colors = colors_1;
+var colorCalibration = colorCalibration_1;
+
+var widthDescription = 100;
+var heightDescription = colorCalibration.length * (cellSize + 2);
+
+var colorScale = d3.scale.threshold()
+                   .domain([5, 10, 15, 20, 25, 50, 75, 100])
+                   .range(colors);
+
+var navHeight = 50;
+
+var navChart = d3.select("body").append("svg")
+                  .attr({"width" : width + margin.left + margin.right, "height" : navHeight + margin.top + margin.bottom})
+                  .attr("class", "navigator")
+                  .append("g").attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
+ 
+var parseToDate = d3.time.format("%Y").parse;
+var parseFromDate = d3.time.format("%Y");
+
+var navXScale = d3.time.scale().domain([parseToDate(firstYear + ""), parseToDate(lastYear + "")])
+                  .range([0, width])
+                  .nice();
+
+var navXAxis = d3.svg.axis()
+                 .scale(navXScale)
+                 .ticks(30)
+                 .orient("bottom");
+
+navChart.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0, " + navHeight + ")")
+         .call(navXAxis);
+
+var group;
+var currentMaxYear = lastYear;
+var currentMinYear = firstYear;
+
+var viewport = d3.svg.brush()
+                 .x(navXScale)
+                 .extent([parseToDate(firstYear + ""),parseToDate(lastYear + "")])
+                 .on("brush", function(){
+                    var ext = viewport.extent();
+                    var maxYear = +parseFromDate(ext[1]);
+                    var minYear = +parseFromDate(ext[0]);
+                    update_data(maxYear, minYear);
+                    if(maxYear) currentMaxYear = maxYear;
+                    if(minYear) currentMinYear = minYear;
+                    update_map();
+                    update_pie_chart();
+                  });
+
+navChart.append("g")
+        .attr("class", "viewport")
+        .call(viewport)
+        .selectAll("rect")
+        .attr("height", navHeight)
+        .attr("y", -6)
+        .style("visibility", "visible");
+
+d3.json("world_map.json", function(world){
+
+group = svg.selectAll("g")
+              .data(world.features)
+              .enter()
+              .append("g");
+
+group.append("path")
+     .attr("d", path)
+     .attr("class", "country")
+     .attr("fill", "#8B8B8B");
+
+group.on("mouseover", mouseover);
+group.on("mouseout", mouseout);
+group.on("click", click);
+
+read_data();
+
+});
+
+var fields = ["Chemistry", "Literature", "Peace", "Physics", "Physiology or Medicine", "Economics"];
+
+/*Pie chart vars*/
+var pieChart = d3.select(".frame").append("svg").attr({"width" : frameWidth, "height" : 200})
+                 .append("g").attr("transform", "translate(100, 100)");
+
+var colorPie = d3.scale.ordinal()
+                 .range(['#d53e4f','#fc8d59','#fee08b','#e6f598','#99d594','#3288bd']);
+var radius = 100;
+var arc = d3.svg.arc()
+            .outerRadius(radius)
+            .innerRadius(0);
+var pie = d3.layout.pie().sort(null).value(function(d) { return d.cnt; });
+
+var labelArc = d3.svg.arc()
+                 .outerRadius(radius - 20)
+                 .innerRadius(radius - 20);
+var labelArc2 = d3.svg.arc()
+                 .outerRadius(radius - 60)
+                 .innerRadius(radius - 60);
+
+
+function update_pie_chart(){
+    pieChart.selectAll(".arc").remove();
+    var pieData = fields.map(function(field) {
+        var cnt = 0;
+        winners.forEach(function(d){
+            if(d.field == field && d.year >= currentMinYear && d.year <= currentMaxYear){
+                if(selected_countries.length != 0){
+                    var found = false;
+                    selected_countries.forEach(function(country){
+                        if(country == d.country){
+                            cnt++;
+                            return;
+                        }
+                    });
+                }
+                else{
+                    cnt++;
+                }
+            }
+        });
+        return {"cnt" : cnt, "field" : field};
+    });
+    //console.log(pieData);
+    var g = pieChart.selectAll(".arc")
+               .data(pie(pieData))
+               .enter().append("g")
+               .attr("class", "arc");
+
+    g.append("path")
+     .attr("d", arc)
+     .style("fill", function(d) { return colorPie(d.data.field); });
+
+    g.append("text")
+     .attr("transform", function(d) { return "translate(" + labelArc.centroid(d) + ")"; })
+     .attr("dy", ".18em")
+     .text(function(d) { return (d.data.cnt == 0 ? "" : d.data.field); });
+    
+    g.append("text")
+     .attr("transform", function(d) { return "translate(" + labelArc2.centroid(d) + ")"; })
+     .attr("dy", ".18em")
+     .text(function(d) { return (d.data.cnt == 0 ? "": d.data.cnt); });
+}
+
+var selected_countries = [];
+
+function deleteSelectedCountries(){
+     group.selectAll(".country.active").classed("active", false);
+     selected_countries = [];
+     update_pie_chart();
+}
+
+function click(d){
+    if(COM_PRESSED == 1){
+        var pos = selected_countries.indexOf(d.properties.name); 
+        if(pos != -1){
+            selected_countries.splice(pos, 1);
+            group.selectAll(".country.active").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", false);
+            update_pie_chart();
+            return;
+        } 
+        selected_countries.push(d.properties.name);
+        group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
+    }
+    else{
+        group.selectAll(".country.active").classed("active", false);
+        selected_countries = [];
+        selected_countries.push(d.properties.name);
+        group.selectAll(".country").filter(function(d2, i) { return d2.properties.name == d.properties.name; }).classed("active", true);
+    }
+    update_pie_chart();
+}
+
+
+var checkbox_tags = {};
+var checkbox = d3.select(".checkboxes").selectAll("label")
+                 .on("mousedown", function(){setTimeout(update_checkbox_tags, 300)});
+
+function update_checkbox_tags(){
+      var tags = document.getElementsByTagName("input");
+      var cnt = 0;
+      for(var i = 0; i < tags.length; i++){
+         if(tags[i].type == "checkbox"){
+              checkbox_tags[tags[i].value] = tags[i].checked;              
+              if(tags[i].checked == true) cnt++;
+         } 
+     }
+     if(cnt == 6 && document.getElementById("total_checkbox").checked == false){
+        cnt++;
+        document.getElementById("total_checkbox").checked = true;
+        checkbox_tags["Total"] = true;
+     }
+     if(cnt < 7){
+        var tot = document.getElementById("total_checkbox");
+        tot.checked = false;
+        checkbox_tags["Total"] = false;
+     }
+     if(data) update_map();
+}
+
+initializeDescription();
+
+function switchColors(){
+    if(colors == colors_1){
+        colors = colors_2;
+        colorCalibration = colorCalibration_2;
+    }
+    else{
+        colors = colors_1;
+        colorCalibration = colorCalibration_1;
+    }
+    var legend = d3.select(".description").select("svg")
+        .selectAll(".legend").data(colorCalibration);
+      
+    legend.select("rect").attr("fill", function(d) {return d;});
+    
+    colorScale.range(colors);
+
+    update_map();
+
+}
+
+function mouseover(d){
+    if(d.properties.name == "Antarctica") return;
+    tooltip.style("opacity", 1)
+           .style("left", d3.mouse(this)[0] + "px")
+           .style("top", d3.mouse(this)[1] + "px");
+    tooltip.select("h3").text(d.properties.name);
+
+    var text = "Total : " + find_country_cnt(d.properties.name, data, true) + ", " + "Chemistry : " + find_country_cnt_by_subject(d.properties.name, winners, "Chemistry") + ", " + "Economics : " + find_country_cnt_by_subject(d.properties.name, winners, "Economics") + ", " + "Literature : " + find_country_cnt_by_subject(d.properties.name, winners, "Literature") + ", " + "Peace : " + find_country_cnt_by_subject(d.properties.name, winners, "Peace") + ", " + "Physics : " + find_country_cnt_by_subject(d.properties.name, winners, "Physics") + ", " + "Physiology or Medicine : " + find_country_cnt_by_subject(d.properties.name, winners, "Physiology or Medicine");
+    tooltip.select(".info").text(text);
+}
+
+function find_country_cnt_by_subject(name, data, subject_name){
+    var res = 0;
+    data.forEach(function(d){    
+        if(name == d.country && subject_name == d.field && d.year >= currentMinYear && d.year <= currentMaxYear){
+            res++;
+        }
+    });
+    return +res;
+}
+
+function mouseout(d){
+    tooltip.style("opacity", 0);
+}
+
+function initializeDescription(){
+    var desc = d3.select(".description").append("svg")
+                 .attr("width", widthDescription)
+                 .attr("height", heightDescription);
+    var legend = desc.selectAll(".legend").data(colorCalibration)
+                     .enter().append("g")
+                     .attr("class", "legend")
+                     .attr("width", widthDescription)
+                     .attr("height", cellSize)
+                     .attr("transform", function(d, i) { return "translate(0, " + (i * (cellSize + 2)) + ")"; });
+    
+    legend.append("rect")
+          .attr("width", cellSize)
+          .attr("height", cellSize)
+          .attr("fill", function(d) { return d; });
+
+    legend.append("text")
+          .attr("y", cellSize / 2 + 5)
+          .attr("x", cellSize + 4)
+          .attr("font", "sans-serif")
+          .text(function(d, i){
+                if(i == 0){ return "No data"; }
+                else if(i == colorScale.domain().length + 1) return " > " + colorScale.domain()[i - 2];
+                return " < " + colorScale.domain()[i - 1];
+          });
+}
+
+var winners;
+var data;
+var filtred_data;
+
+function read_data(){
+    d3.csv("winners.csv", beautify, function(winners_data){
+        winners = winners_data;
+        update_data();
+        update_map();
+        update_pie_chart();
+        update_checkbox_tags();
+    });    
+}
+
+function update_data(maxYear = 2016, minYear = 1901){
+    var country_data = {};
+    winners.forEach(function(d){
+         if(d.year <= maxYear && d.year >= minYear){
+             if(country_data[d.country] == undefined){
+                country_data[d.country] = {};
+                country_data[d.country]["Total"] = 1;
+                country_data[d.country]["Physiology or Medicine"] = 0;
+                country_data[d.country]["Peace"] = 0;
+                country_data[d.country]["Chemistry"] = 0;
+                country_data[d.country]["Physics"] = 0;
+                country_data[d.country]["Literature"] = 0;
+                country_data[d.country]["Economics"] = 0;
+
+                country_data[d.country][d.field]++;
+             }
+             else{
+                country_data[d.country]["Total"]++;
+                country_data[d.country][d.field]++;
+             }
+        }
+    });  
+    //console.log(country_data);
+    data = Object.keys(country_data).map(function(key){
+       //return {"country" : key, "cnt" : country_data[key]};
+        return {
+            "country" : key,
+            "Total" : country_data[key]["Total"],
+            "Physiology or Medicine" : country_data[key]["Physiology or Medicine"],
+            "Peace" : country_data[key]["Peace"],
+            "Chemistry" : country_data[key]["Chemistry"],
+            "Physics" : country_data[key]["Physics"],
+            "Literature" : country_data[key]["Literature"],
+            "Economics" : country_data[key]["Economics"]
+        }
+    });
+    console.log(data);
+}
+
+function update_map(){
+    group.select("path").attr("fill", function(d){
+       var cnt = find_country_cnt(d.properties.name, data);
+       if(cnt == 0) return colorCalibration[0];
+       else return colorScale(cnt);
+    });
+}
+
+function find_country_cnt(name, data, total = false){
+    var res = 0;
+    data.forEach(function(d){    
+        if(name == d.country){
+            if(total == true) {res = d.Total; return;}
+            for(var key in checkbox_tags){
+               if(key == "Total" || key == "country") continue;
+               if(checkbox_tags[key] == true) res += d[key];
+            }
+            return;
+        }
+    });
+    return +res;
+}
+
+function beautify(d){
+    d.year = +d.year;
+    d.name = d.name.trim();
+    d.field = d.field.trim();
+    d.country = d.country.trim();
+    return d;
+}
+
+        </script>
+    </body>
+</html>
